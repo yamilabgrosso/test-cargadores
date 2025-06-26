@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mapa de Cargadores</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    #filter-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 280px;
+      background: white;
+      padding: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 10;
+      border-radius: 8px;
+    }
+
+    #filter-panel h3 {
+      margin-top: 0;
+    }
+
+    .filter-group {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="filter-panel">
+    <h3>Filtros</h3>
+    <div class="filter-group">
+      <label>Capacidad de carga (kW)</label><br>
+      <input type="range" id="power" min="0" max="300" step="10" value="0">
+      <span id="power-value">0+</span>
+    </div>
+    <div class="filter-group">
+      <label><input type="checkbox" id="tipo2" checked> Tipo 2</label><br>
+      <label><input type="checkbox" id="ccs" checked> CCS</label>
+    </div>
+    <div class="filter-group">
+      <label><input type="checkbox" id="plugCharge"> Plug & Charge</label><br>
+      <label><input type="checkbox" id="app"> Aplicación</label><br>
+      <label><input type="checkbox" id="rfid"> Tarjeta RFID</label>
+    </div>
+    <div class="filter-group">
+      <label><input type="checkbox" id="audi"> Audi Charging</label><br>
+      <label><input type="checkbox" id="ionity"> IONITY</label><br>
+      <label><input type="checkbox" id="disponibles"> Solo disponibles ahora</label>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script>
+    let map;
+
+    const cargadores = [
+      {
+        nombre: "Beiró 5249",
+        posicion: { lat: -34.605191, lng: -58.519056 },
+        potencia: 50,
+        tipo: ["Tipo 2"],
+        auth: ["Plug & Charge"],
+        servicios: ["Audi Charging"],
+        disponible: true
+      }
+    ];
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: -34.6037, lng: -58.3816 },
+        zoom: 12
+      });
+
+      cargadores.forEach((cargador) => {
+        const marker = new google.maps.Marker({
+          position: cargador.posicion,
+          map,
+          icon: {
+            url: "https://cdn-icons-png.flaticon.com/512/3103/3103446.png", // ícono de cargador
+            scaledSize: new google.maps.Size(30, 30)
+          },
+          title: cargador.nombre
+        });
+
+        const info = `
+          <strong>${cargador.nombre}</strong><br>
+          Potencia: ${cargador.potencia} kW<br>
+          Tipo: ${cargador.tipo.join(", ")}<br>
+          Autenticación: ${cargador.auth.join(", ")}<br>
+          Servicios: ${cargador.servicios.join(", ")}<br>
+          Disponible: ${cargador.disponible ? "Sí" : "No"}
+        `;
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: info
+        });
+
+        marker.addListener("click", () => {
+          infoWindow.open(map, marker);
+        });
+      });
+
+      document.getElementById("power").addEventListener("input", (e) => {
+        document.getElementById("power-value").textContent = e.target.value + "+";
+        // Lógica de filtrado aquí si se agregan más cargadores
+      });
+    }
+  </script>
+
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6zj4q4J_j0moPap0lMKh86hAJtvxqa3o&callback=initMap&loading=async">
+</script>
+</body>
+</html>
