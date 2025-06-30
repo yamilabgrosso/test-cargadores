@@ -1,0 +1,50 @@
+[
+  {
+    "AddressInfo": {
+      "Title": "Cargador Beiró",
+      "Latitude": -34.6093,
+      "Longitude": -58.5125
+    },
+    "Connections": [
+      {
+        "ConnectionType": { "Title": "Tipo 2" },
+        "PowerKW": 22
+      }
+    ],
+    "UsageType": { "Title": "App y RFID" },
+    "OperatorInfo": { "Title": "Audi" },
+    "StatusType": { "IsOperational": true }
+  },
+  {
+    "AddressInfo": {
+      "Title": "Cargador Mendoza",
+      "Latitude": -32.8908,
+      "Longitude": -68.8272
+    },
+    "Connections": [
+      {
+        "ConnectionType": { "Title": "CCS" },
+        "PowerKW": 50
+      }
+    ],
+    "UsageType": { "Title": "Plug & Charge" },
+    "OperatorInfo": { "Title": "IONITY" },
+    "StatusType": { "IsOperational": false }
+  },
+  {
+    "AddressInfo": {
+      "Title": "Cargador Córdoba",
+      "Latitude": -31.4173,
+      "Longitude": -64.183
+    },
+    "Connections": [
+      {
+        "ConnectionType": { "Title": "Tipo 2" },
+        "PowerKW": 11
+      }
+    ],
+    "UsageType": { "Title": "App" },
+    "OperatorInfo": { "Title": "Carga Local" },
+    "StatusType": { "IsOperational": true }
+  }
+]

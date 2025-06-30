@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <title>Mapa de Cargadores</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    html, body {
-      height: 100%;
+    html,
+    body {
       margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: Arial, sans-serif;
     }
 
@@ -22,13 +26,9 @@
       width: 280px;
       background: white;
       padding: 15px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      z-index: 10;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
       border-radius: 8px;
-    }
-
-    #filter-panel h3 {
-      margin-top: 0;
     }
 
     .filter-group {
@@ -36,6 +36,7 @@
     }
   </style>
 </head>
+
 <body>
   <div id="filter-panel">
     <h3>Filtros</h3>
@@ -62,65 +63,102 @@
 
   <div id="map"></div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    let map;
+    let map = L.map('map').setView([-38.4161, -63.6167], 5);
+    let todosLosCargadores = [];
+    let marcadores = [];
 
-    const cargadores = [
-      {
-        nombre: "Beiró 5249",
-        posicion: { lat: -34.605191, lng: -58.519056 },
-        potencia: 50,
-        tipo: ["Tipo 2"],
-        auth: ["Plug & Charge"],
-        servicios: ["Audi Charging"],
-        disponible: true
-      }
-    ];
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: -34.6037, lng: -58.3816 },
-        zoom: 12
+    // Ícono de rayo personalizado
+    const iconoCargador = L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/256/4430/4430832.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+
+    // Cargar datos desde archivo local
+    fetch("datos.json")
+      .then(response => response.json())
+      .then(data => {
+        todosLosCargadores = data;
+        aplicarFiltrosYMostrar();
       });
 
-      cargadores.forEach((cargador) => {
-        const marker = new google.maps.Marker({
-          position: cargador.posicion,
-          map,
-          icon: {
-            url: "https://cdn-icons-png.flaticon.com/512/3103/3103446.png", // ícono de cargador
-            scaledSize: new google.maps.Size(30, 30)
-          },
-          title: cargador.nombre
-        });
+    document.getElementById("power").addEventListener("input", () => {
+      document.getElementById("power-value").textContent = document.getElementById("power").value + "+";
+      aplicarFiltrosYMostrar();
+    });
 
-        const info = `
-          <strong>${cargador.nombre}</strong><br>
-          Potencia: ${cargador.potencia} kW<br>
-          Tipo: ${cargador.tipo.join(", ")}<br>
-          Autenticación: ${cargador.auth.join(", ")}<br>
-          Servicios: ${cargador.servicios.join(", ")}<br>
-          Disponible: ${cargador.disponible ? "Sí" : "No"}
-        `;
+    document.querySelectorAll("#filter-panel input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", aplicarFiltrosYMostrar);
+    });
 
-        const infoWindow = new google.maps.InfoWindow({
-          content: info
-        });
+    function aplicarFiltrosYMostrar() {
+      marcadores.forEach(m => map.removeLayer(m));
+      marcadores = [];
 
-        marker.addListener("click", () => {
-          infoWindow.open(map, marker);
-        });
+      const minPower = parseInt(document.getElementById("power").value);
+      const tipo2 = document.getElementById("tipo2").checked;
+      const ccs = document.getElementById("ccs").checked;
+      const plugCharge = document.getElementById("plugCharge").checked;
+      const app = document.getElementById("app").checked;
+      const rfid = document.getElementById("rfid").checked;
+      const audi = document.getElementById("audi").checked;
+      const ionity = document.getElementById("ionity").checked;
+      const disponibles = document.getElementById("disponibles").checked;
+
+      const filtrados = todosLosCargadores.filter(c => {
+        const conexiones = c.Connections || [];
+        const connectionTitles = conexiones.map(conn => conn.ConnectionType?.Title || "").join(" ").toLowerCase();
+        const powerMatch = conexiones.some(conn => (conn.PowerKW || 0) >= minPower);
+
+        const tipoMatch = (
+          (tipo2 && connectionTitles.includes("tipo 2")) ||
+          (ccs && connectionTitles.includes("ccs")) ||
+          (!tipo2 && !ccs)
+        );
+
+        const usage = (c.UsageType?.Title || "").toLowerCase();
+        const authMatch =
+          (!plugCharge || usage.includes("plug")) &&
+          (!app || usage.includes("app")) &&
+          (!rfid || usage.includes("rfid"));
+
+        const operador = (c.OperatorInfo?.Title || "").toLowerCase();
+        const servicioMatch =
+          (!audi || operador.includes("audi")) &&
+          (!ionity || operador.includes("ionity"));
+
+        const disponibleMatch = !disponibles || c.StatusType?.IsOperational;
+
+        return powerMatch && tipoMatch && authMatch && servicioMatch && disponibleMatch;
       });
 
-      document.getElementById("power").addEventListener("input", (e) => {
-        document.getElementById("power-value").textContent = e.target.value + "+";
-        // Lógica de filtrado aquí si se agregan más cargadores
+      filtrados.forEach(c => {
+        const lat = c.AddressInfo?.Latitude;
+        const lng = c.AddressInfo?.Longitude;
+        const nombre = c.AddressInfo?.Title || "Sin nombre";
+        const potencia = c.Connections?.[0]?.PowerKW || 'Desconocida';
+        const tipo = c.Connections?.map(conn => conn.ConnectionType?.Title || "Desconocido").join(", ");
+        const disponible = c.StatusType?.IsOperational ? "Sí" : "No";
+
+        const marker = L.marker([lat, lng], { icon: iconoCargador }).addTo(map)
+          .bindPopup(`
+            <strong>${nombre}</strong><br>
+            Potencia: ${potencia} kW<br>
+            Tipo: ${tipo}<br>
+            Disponible: ${disponible}
+          `);
+
+        marcadores.push(marker);
       });
     }
   </script>
-
-<script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDa0lhmGwlrJNp6VVq-U3gGN53X7NrK-_0&callback=initMap&loading=async">
-</script>
 </body>
+
 </html>
